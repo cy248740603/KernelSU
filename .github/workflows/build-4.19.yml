@@ -1,39 +1,57 @@
-name: Build KernelSU for android14-4.19
-
+name: 编译 K40S (munch) KernelSU Android14-4.19
 on:
-  workflow_dispatch:    # 允许手动点击运行
+  workflow_dispatch:  # 手动点击运行
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout KernelSU
-        uses: actions/checkout@v4
+      - name: 安装编译依赖
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential clang llvm lld bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu
+
+      # 克隆 K40S 专属 4.19 内核源码（LineageOS 官方稳定版）
+      - name: 克隆 K40S 内核源码
+        uses: actions/checkout@v6
+        with:
+          repository: LineageOS/android_kernel_xiaomi_munch
+          ref: lineage-21
+          path: device_kernel
+
+      # 准备内核编译环境
+      - name: 准备内核环境
+        run: |
+          cd device_kernel
+          export ARCH=arm64
+          make lineageos_munch_defconfig
+          make modules_prepare -j$(nproc)
+
+      # 克隆官方 KernelSU
+      - name: 克隆 KernelSU 官方源码
+        uses: actions/checkout@v6
         with:
           repository: tiann/KernelSU
           path: KernelSU
 
-      - name: Install build dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y git build-essential clang llvm lld bison flex libssl-dev libelf-dev
-
-      - name: Build kernelsu.ko for 4.19
+      # 编译 4.19 专属 kernelsu.ko
+      - name: 开始编译 KernelSU
         run: |
           cd KernelSU/kernel
-          make clean
-          CONFIG_KSU=m \
-          CC=clang \
-          LD=ld.lld \
-          AR=llvm-ar \
-          NM=llvm-nm \
-          OBJCOPY=llvm-objcopy \
-          OBJDUMP=llvm-objdump \
-          make -j$(nproc)
+          export ARCH=arm64
+          make -C $GITHUB_WORKSPACE/device_kernel \
+            M=$(pwd) \
+            CONFIG_KSU=m \
+            CC=clang \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            -j$(nproc)
+          
+          # 模块瘦身
           llvm-strip -d kernelsu.ko
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      # 上传编译好的文件
+      - name: 上传 kernelsu.ko
+        uses: actions/upload-artifact@v7
         with:
-          name: kernelsu-android14-4.19
+          name: kernelsu-k40s-android14-4.19
           path: KernelSU/kernel/kernelsu.ko
