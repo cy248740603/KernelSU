@@ -3,7 +3,7 @@ set -e
 
 mkdir -p output
 
-KMIS="android12-5.10 android13-5.10 android13-5.15 android14-5.15 android14-6.1 android15-6.6 android16-6.12"
+KMIS="android14-4.19"
 
 mv .ddk-version .ddk-version.bak || true
 
