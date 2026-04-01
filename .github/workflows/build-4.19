@@ -1,0 +1,39 @@
+name: Build KernelSU for android14-4.19
+
+on:
+  workflow_dispatch:    # 允许手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout KernelSU
+        uses: actions/checkout@v4
+        with:
+          repository: tiann/KernelSU
+          path: KernelSU
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git build-essential clang llvm lld bison flex libssl-dev libelf-dev
+
+      - name: Build kernelsu.ko for 4.19
+        run: |
+          cd KernelSU/kernel
+          make clean
+          CONFIG_KSU=m \
+          CC=clang \
+          LD=ld.lld \
+          AR=llvm-ar \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          OBJDUMP=llvm-objdump \
+          make -j$(nproc)
+          llvm-strip -d kernelsu.ko
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernelsu-android14-4.19
+          path: KernelSU/kernel/kernelsu.ko
