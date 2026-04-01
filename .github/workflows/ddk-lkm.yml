@@ -28,7 +28,7 @@ jobs:
     name: Build kernelsu.ko for ${{ inputs.kmi }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/ylarod/ddk-min:${{ inputs.kmi }}-${{ inputs.ddk_release }}
+      image: ghcr.io/ylarod/ddk-min:${{ contains(inputs.kmi, 'android14-4.19') && 'android13-4.19' || inputs.kmi }}-${{ inputs.ddk_release }}
       options: --privileged
 
     steps:
