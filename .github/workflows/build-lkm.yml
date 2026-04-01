@@ -25,6 +25,7 @@ jobs:
           - android14-6.1
           - android15-6.6
           - android16-6.12
+          - android14-4.19
     uses: ./.github/workflows/ddk-lkm.yml
     with:
       kmi: ${{ matrix.kmi }}
